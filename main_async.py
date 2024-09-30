@@ -1,4 +1,5 @@
 import asyncio
+import time
 
 import httpx
 
@@ -35,24 +36,36 @@ async def fetch_filters(cat):
 async def get_products(cats):
     products = []
     for cat in cats:
+        print("-------------------------START-------")
+        print(cat.name)
         if cat.childs is None and cat.shard:
             products_models = await fetch_products(cat)
             filter_ = await fetch_filters(cat)
-            print("-------------------------START-------")
-            print(cat.name)
             if filter_.filters and filter_.filters[0].name == "Категория":
-                print(filter_.filters[0].items)
+                items = filter_.filters[0].items
+                print(items)
             print(products_models.data.total)
-            print("-------------------------STOP-------")
             products.append(products_models)
+            print("-------------------------STOP-------")
         elif cat.childs:
             products.extend(await get_products(cat.childs))
+            if len(products) >= 500:
+                print("!!!!")
+                break
     return products
 
 
 async def main():
+    start_time = time.time()
     catalog = await fetch_catalog()
-    await get_products(catalog)
+    products = []
+    try:
+        products = await get_products(catalog)
+    except Exception as e:
+        print("ОШИБКА -- ", str(e))
+    end_time = time.time()
+    print(f"Время выполнения: {end_time - start_time:.2f} секунд")
+    print("products = ", len(products))
 
 
 if __name__ == "__main__":
